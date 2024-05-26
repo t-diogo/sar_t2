@@ -1,3 +1,4 @@
+
 import { Injectable } from '@angular/core';
 import {throwError,  Observable } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpResponse, HttpErrorResponse } from '@angular/common/http';
@@ -16,7 +17,7 @@ export class InsertitemService {
   // Http POST call to the api to submit the new user data returns a boolean observer to indicate success
   submitNewItem (item: any) {
   
-    let headers = new HttpHeaders({ 'Authorization': 'Bearer ' + this.signinservice.token }); // insert tokern in the requests
+    let headers = new HttpHeaders({ 'Authorization': 'Bearer ' + this.signinservice.token.token }); // insert tokern in the requests
     let options = { headers: headers };
                
     return this.http.post<any>(this.newitemUrl, item, options)

@@ -94,8 +94,8 @@
                 </mat-form-field>
                 <div class="buttons-container">    
                   <button mat-raised-button  color="primary" [disabled]="!bidForm.valid" type="submit">Submit Bid</button> 
-                  <button mat-raised-button color="primary" type= "button" (click)="cancelBid()">Cancel</button>
-                  <button mat-raised-button color="primary" type= "button" (click)="buyNow()">Buy Now</button>
+                  <button mat-raised-button  color="primary" type="button" (click)="cancelBid()">Cancel</button>
+                  <button mat-raised-button  color="primary" type="button" (click)="buyNow()">Buy Now</button>
                   <button mat-raised-button  color="primary" type="button" (click)="removeItem()" *ngIf=showRemove>Remove</button>
                 </div>  
             </form>

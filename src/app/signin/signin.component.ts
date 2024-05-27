@@ -39,10 +39,12 @@ export class SigninComponent implements OnInit {
   }
 
   submit() {
+    // check errors in the form
     if (!this.loginForm.valid) {
       console.log(this.loginForm.controls['password'].errors);
       return;
     }
+
     // AAA -> Get Browser Coordinates https://www.itsolutionstuff.com/post/angular-google-maps-get-current-locationexample.html
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition((position) => {
@@ -55,11 +57,12 @@ export class SigninComponent implements OnInit {
                 // if the Http POST call made is successfull the result is a Token object
                 this.signinservice.setToken(result); // store the received jwt token in the sign in service for future use in authentication
                 this.socketservice.connect();	// connect the websocket since we already have the token
-                //send a new user event to the server so that the server can store the socket ID mapped to the usernames
-                this.socketservice.sendEvent('newUser:username',{username: this.loginForm.value.username});
+                
+                //send a new user event to the server
+                this.socketservice.sendEvent('userLogIn:username',{username: this.loginForm.value.username});
                 this.errorMessage = "";
-                console.log('navigating to auction');
                 //login successful navigate to acution page
+                console.log('navigating to auction');
                 this.router.navigate(['/auction']);
               },
               error: error => {
@@ -74,13 +77,17 @@ export class SigninComponent implements OnInit {
             .subscribe({
               next: result => {
                 // if the Http POST call made is successfull the result is a Token object
+          
                 this.signinservice.setToken(result); // store the received jwt token in the sign in service for future use in authentication
                 this.socketservice.connect();	// connect the websocket since we already have the token
-                //send a new user event to the server so that the server can store the socket ID mapped to the usernames
-                this.socketservice.sendEvent('newUser:username',{username: this.loginForm.value.username});
+
+                //send a user login event to the server
+                this.socketservice.sendEvent('userLogIn:username',{username: this.loginForm.value.username});
+                
                 this.errorMessage = "";
+
+                // navigate to auction page
                 console.log('navigating to auction');
-                //login successful navigate to acution page
                 this.router.navigate(['/auction']);
               },
               error: error => {

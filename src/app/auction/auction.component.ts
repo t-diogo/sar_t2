@@ -94,8 +94,20 @@ export class AuctionComponent implements OnInit {
 
     //subscribe to the incoming websocket events
 
-    //example how to subscribe to the server side regularly (each second) items:update event
+    // subscribe to the server side regularly (each second) unsold:items event
     const updateItemsSubscription = this.socketservice.getEvent("update:items")
+      .subscribe(
+        data => {
+          let receiveddata = data as Item[];
+          console.log("received data: " + receiveddata);
+          if (this.items) {
+            this.items = receiveddata;
+          }
+        }
+      );
+
+    // subscribe to the server side regularly (each second) unsold:items event
+    const updateUnsoldItemsSubscription = this.socketservice.getEvent("unsold:items")
       .subscribe(
         data => {
           let receiveddata = data as Item[];
@@ -105,9 +117,50 @@ export class AuctionComponent implements OnInit {
         }
       );
 
-    //subscribe to the new user logged in event that must be sent from the server when a client logs in 
-    //subscribe to the user logged out event that must be sent from the server when a client logs out 
-    //subscribe to a receive:message event to receive message events sent by the server 
+    // subscribe to the server side regularly (each second) sold:items event
+    const updateSoldItemsSubscription = this.socketservice.getEvent("sold:items")
+    .subscribe(
+      data => {
+        let receiveddata = data as  Item[];
+        if (this.soldHistory) {
+          for (let i = 0; i < receiveddata.length; i++) {
+            // update sold history with the sold items without duplicates
+            this.soldHistory = this.soldHistory.filter(item => item != receiveddata[i].description + " from " + receiveddata[i].owner + " was sold to " + receiveddata[i].wininguser + " for " + receiveddata[i].currentbid + "€");
+          }
+        }
+      }
+    );
+    
+    /*
+    //subscribe to the  logged in event that must be sent from the server when a client logs in
+    const UserLogInSubscription = this.socketservice.getEvent("login:user")
+      .subscribe(
+        data => {
+          let receiveddata = data as User;
+          if (this.users) {
+            this.users.push(receiveddata);
+          }
+        }
+      );
+    
+
+    //subscribe to the logged out event that must be sent from the server when a client logs out
+    const UserLogOutSubscription = this.socketservice.getEvent("logout:user")
+    .subscribe(
+      data => {
+        let receiveddata = data as User;
+        if (this.users) {
+          for (let i = 0; i < this.users.length; i++) {
+            if (this.users[i].username == receiveddata.username) {
+              this.users.splice(i, 1);
+            }
+          }
+        }
+      }
+    );
+    */
+
+    //subscribe to a receive:message event to receive message events sent by the server
     //subscribe to the item sold event sent by the server for each item that ends.
 
     //subscription to any other events must be performed here inside the ngOnInit function
@@ -153,8 +206,8 @@ export class AuctionComponent implements OnInit {
   // function called when the submit bid button is pressed
   submit() {
     console.log("submitted bid = ", this.bidForm.value.bid);
-    //send an submitBid event to the server with info about the bid and the selected item
-    this.socketservice.sendEvent('submitBid:bid', { bid: this.bidForm.value.bid, item: this.selectedItem });
+    //send an submit event to the server with info about the bid and the selected item
+    this.socketservice.sendEvent('submit:bid', { bid: this.bidForm.value.bid, item: this.selectedItem });
   }
 
   //function called when the cancel bid button is pressed.
@@ -173,6 +226,7 @@ export class AuctionComponent implements OnInit {
   //function called when the remove item button is pressed.
   removeItem() {
     //use an HTTP call to the API to remove an item using the auction service.
+    
   }
 
 }

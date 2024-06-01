@@ -11,46 +11,108 @@ var socketIDbyUsername = new Map(); // map to store clients the client object wi
 var usernamebySocketID = new Map(); // map to store clients the client object with socketid has key
 var ioSocket = null; // global store object for websocket
 
-//timer function to decrement the remaining time in the items of the database with auctionTime bigger than 0.
-var IntervalId = setInterval(function () {
-  /*start by udpating all active items with -1 auctionTime you can use the method  
-   item.updateMany({remainingtime: {$gt:0}},{$inc:{remainingtime: -1}},{multi:true})
+  var IntervalId = setInterval(function () {
+    
+    // decrement remaining time for all items with remaining time greater than 0
+    item.updateMany({ remainingtime: { $gt: 0 } }, { $inc: { remainingtime: -1 } });
+    // broadcast to all clients the updated items
+    if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
+      for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the login:item event
+        ioSocket.to(socketID).emit('update:items', item.find());
+      }
+    }
 
-  //after decrementing all items, use find to get all unsold items and send them to all clients via websocket
-  //obtain all items that are less than 0 and not marked as sold yet using the item.find method that returns all those items 
-  //uptade the sold property and send the sold items to all clients 
+    
+    // find all items with remaining time equal to 0 and not marked as sold
+    item.find({ remainingtime: 0, sold: false })
+      .then((unsold_items) => {
+        if (unsold_items) {
+          // for each item set sold = true
+          unsold_items.forEach((item) => {
+            item.updateOne({ id: item.id }, { $set: { sold: true } });
+            // broadcast to all clients the item marked as sold
+            this.SoldItemsBroadcast(item);
+          });
+        }
+      });
+    
 
-      /* the following method sends an event for a specific socket id you can call in a cycle to send to all socket ids. 
-       ioSocket.to(id).emit('sold:item', {  // send a sold event for each item
-       //fill with object to send in JSON
-       });*/
+  }, 1000); // 1000 milliseconds is the interval time
 
-  //update times
-}, 1000); // 1000 milliseconds is the interval time 
+/*
+broadcasts an event to to all logged clients with the new LoggedIn client
+*/
+exports.UpdateItemsBroadcast = function (updatedItems) {
+  if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
+    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the login:item event
+      ioSocket.to(socketID).emit('update:items', updatedItems);
+    }
+  }
+}
 
 
+/*
+broadcasts an event to to all logged clients with the new LoggedIn client
+ */
+exports.SoldItemsBroadcast = function (soldItems) {
+  if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
+    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the login:item event
+      ioSocket.to(socketID).emit('sold:items', soldItems);
+    }
+  }
+}
+
+/*
+broadcasts an event to to all logged clients with the new LoggedIn client
+ */
+exports.UnsoldItemsBroadcast = function (unsoldItems) {
+  if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
+    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the login:item event
+      ioSocket.to(socketID).emit('unsold:items', unsoldItems);
+    }
+  }
+}
 
 /*
 broadcasts an event to to all logged clients with the new LoggedIn client
  */
 exports.UserLoggedInBroadcast = function (loggedInUser) {
   if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
-    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the new:item method
-      ioSocket.to(socketID).emit('new:item', loggedInUser);
+    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the login:item event
+      ioSocket.to(socketID).emit('login:user', loggedInUser);
     }
   }
 }
-
-
 
 /*
 broadcasts an event to to all logged clients with the new LoggedOut client
 */
 exports.UserLoggedOutBroadcast = function (loggedOutUser) {
-
   if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
-    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the new:item method
-      ioSocket.to(socketID).emit('remove:item', loggedOutUser);
+    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the logout:item event
+      ioSocket.to(socketID).emit('logout:user', loggedOutUser);
+    }
+  }
+}
+
+/*
+broadcasts an event to to all logged clients with the new item
+*/
+exports.NewItemBroadcast = function (newItem) {
+  if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
+    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the new:item event
+      ioSocket.to(socketID).emit('new:item', newItem);
+    }
+  }
+}
+
+/*
+broadcasts an event to to all logged clients with the new removed item
+*/
+exports.RemoveItemBroadcast = function (removedItem) {
+  if (ioSocket != null) {  // test if the socket was already created (at least one client already connected the websocket)
+    for (var socketID of socketIDbyUsername.values()) { // for all clients call the emit method for each socket id to send the remove:item event
+      ioSocket.to(socketID).emit('remove:item', removedItem);
     }
   }
 }
@@ -107,13 +169,19 @@ exports.StartSocket = (io) => {
     });
 
     //event to receive bids and update the item in the database if the bid received is higher than the current one
-    socket.on('submitBid:bid', data => {
-      console.log("submitBid:bid -> Received event submitBid:bid with data = ", data);
+    socket.on('submit:bid', data => {
+      console.log("submit:bid -> Received event submit:bid with data = ", data);
       //verify in the database if the data.bid is higher than the current one and if so update the object
       if (data.bid > data.item.currentbid) {
-        item.updateOne({ id: data.item.id }, { $set: { currentbid: data.bid } });
-        // no need to broadcast since the item is sent every second in the interval method
-        // all clients will receive the updated info in the next second.
+        // Find item by id and update the current bid
+        item.updateOne({ id: data.item.id }, { $set: { currentbid: data.bid }})
+          .then(() =>{
+            item.find({id: data.item.id})
+            .then(item =>{
+              // broadcast the updated item to all active clients
+              this.UpdateItemsBroadcast(item);
+            });
+          })
       }
     });
 
@@ -129,8 +197,9 @@ exports.StartSocket = (io) => {
     socket.on('disconnect', function () {
       console.log("User disconnected");
       let username = usernamebySocketID.get(socket.id); // get username from socketId in the Map
-      // set logged in = false
+      // set isLogged = false
       user.updateOne({ username: username }, { $set: { islogged: false } });
     });
+
   });
 }

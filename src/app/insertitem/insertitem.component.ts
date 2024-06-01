@@ -35,13 +35,13 @@ export class InsertitemComponent implements OnInit {
      console.log(this.itemForm.value);
   }
 
-  get f(){
+  get f() {
 
     return this.itemForm.controls;
 
   }
 
-  submit(){
+  submit() {
   	 this.insertitemservice.submitNewItem(this.itemForm.value)
    	   .subscribe({
    	   	  next:result => {

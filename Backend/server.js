@@ -43,10 +43,9 @@ const protectJwt = jwt({ secret: secret, algorithms: ['HS256'] });
 app.post('/api/authenticate', routes.Authenticate); //route to deal with the post of the authentication form
 app.post('/api/newuser', routes.NewUser); //route to deal with the post of the register form
 app.post('/api/newitem', protectJwt, routes.NewItem); //route to deal with the post of the new item form needs authentication token
+app.post('/api/removeitem', protectJwt, routes.RemoveItem); //route to deal with the post of the new item form needs authentication token
 app.get('/api/items', protectJwt, routes.GetItems); //route to deal with the get all items call to the api needs authentication token
 app.get('/api/users', protectJwt, routes.GetUsers); //route to deal with the get all users call to the api needs authentication token
-app.post('/api/removeitem', protectJwt, routes.RemoveItem); //route to deal with the post of the new item form needs authentication token
-
 
 // Catch all other routes and return the index file
 app.get('*', (req, res) => {
@@ -61,12 +60,13 @@ app.use(function (req, res, next) {
 });
 
 //connect to the database
-
 mongoose.connect(databaseUri); // Connects to your MongoDB.  Make sure mongod is running!
+
 mongoose.connection.on('error', function () {
   console.log('MongoDB Connection Error. Please make sure that MongoDB is running.');
   process.exit(1);
 });
+
 mongoose.connection.on('connected', function () {
   mongoose.set('strictQuery', false);
   console.log('Mongoose connected to ' + databaseUri);
@@ -74,14 +74,17 @@ mongoose.connection.on('connected', function () {
 
 
 //defines the ports
-const port = '3001';
+const port  = '3001';
 const ports = '3044';
+
 var options = {
   key: fs.readFileSync(path.join(__dirname, '../Backend/key.pem')),
   cert: fs.readFileSync(path.join(__dirname, '../Backend/cert.pem'))
 };
 
+// app runs in the https port
 app.set('port', ports);
+
 
 /**
  * Create HTTP server
@@ -95,6 +98,7 @@ httpserver.get('*', (req, res) => {
 });
 
 const server = http.createServer(httpserver);
+
 
 /**
  * Create HTTPS server using the certificate defined in files cert.pem and key.pem
@@ -113,11 +117,12 @@ const io = require('socket.io')(secureserver, {
 socket.StartSocket(io); // call the StartSocket function in socket module
 
 /**
- * Listen on provided port, on all network interfaces.
+ * Https Server (main server) listens on provided port, on all network interfaces.
  */
 secureserver.listen(ports, () => console.log(`API running on https://localhost:${ports}`));
 
+
 /**
-* Http listens on provided port, to provide redirection for HTTPS
+* Http Server listens on provided port, to provide redirection for HTTPS
 */
 server.listen(port, () => console.log(`Http server for https re-direction running on http://localhost:${port}`));

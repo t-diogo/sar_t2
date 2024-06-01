@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const item = require('../models/item.js');
 const user = require('../models/user.js');
 const secret = 'this is the secret secret secret 12356'; // same secret as in socket.js used here to sign the authentication token
+
 //get the file with the socket api code
 const socket = require('./socket.js');
 
@@ -18,24 +19,30 @@ exports.Authenticate =  (req, res) =>  {
   console.log('Authenticate -> Received Authentication POST');
   user.findOne({$and:[{username: req.body.username}, {password: req.body.password}]})
     .then(User => {
+
       if (User != null) {
         // user exists
         user.updateOne({username: req.body.username}, {$set: {islogged: true, latitude: req.body.latitude, longitude: req.body.longitude}})
           .then(update_result => {
+
             if (update_result) {
               //  update successfull
               console.log('Authenticate -> user update : success');
               var token = jwt.sign(req.body, secret);
               res.json({username: req.body.username, token: token});
+              // broadcast the new logged in user to all clients using the websocket
+              socket.UserLoggedInBroadcast(req.body.username);
             } else {
               // update failed
               console.log('Authenticate -> user update : failed');
             }
           })
+
           .catch(err => {
             // error while updating user
             console.log('Authenticate -> error while updating user');
           });
+
       } else {
         // user does not exist
         console.log('Authenticate -> user does not exist');
@@ -43,6 +50,7 @@ exports.Authenticate =  (req, res) =>  {
         res.status(401).send('Wrong username or password. Please try again.');
       }
     })
+
     .catch(err => {
       // there was an error in the database
       console.log('Authenticate -> database error occurred');
@@ -134,6 +142,9 @@ exports.NewItem =  (req, res) => {
               sold: newItem.sold,
               owner: newItem.owner
             });
+
+            // broadcast the new item to all logged in users
+            socket.NewItemBroadcast(newItem);
           })
           .catch(err => {
             // error while creating item
@@ -161,17 +172,22 @@ exports.RemoveItem =  (req, res) => {
   // check if the item exists so it can be removed
   item.removeAllListeners({$and:[{description: req.body.description}, {owner: req.body.owner}]})
     .then(removedItem => {
+
       if (removedItem != null) {
         // item removed
         console.log('RemoveItem -> item removed');
         // send a 200 OK
         res.status(200).send('Item removed successfully.');
+
+        // broadcast the removed item to all logged in users
+        socket.RemoveItemBroadcast(removedItem);
       } else {
         // item does not exist
         console.log('RemoveItem -> item does not exist');
         // send a 404 Not Found
         res.status(404).send('Item does not exist. Please try again.');
       }
+
     }).catch(err => {
       // there was an error in the database
       console.log('RemoveItem -> database error occurred');
@@ -188,7 +204,6 @@ GET to obtain all active items in the database
 exports.GetItems = (req, res) => {
   console.log('GetItems -> received get items call');
 
-  /*
   // get all active items in the database
   item.find({sold: false})
     .then(Items => {
@@ -196,14 +211,17 @@ exports.GetItems = (req, res) => {
       console.log('GetItems -> items retrieved');
       // send the items to the client
       res.json(Items);
+      // Log the items
+      console.log ("received get Items call responded with: ", Items);
+
     }).catch(err => {
       // there was an error in the database
       console.log('GetItems -> database error occurred');
       // send a 5*** status using res.status
       res.status(500).send('Internal server error : database error occurred');
     });
-  */
 
+  /*
   // Dummy items just for example you should send the items that exist in the database use find instead of findOne
   let item1 = new item({description:'Smartphone',currentbid:250, remainingtime:120, buynow:1000, wininguser:'dummyuser1'});
   let item2 = new item({description:'Tablet',currentbid:300, remainingtime:120, buynow:940, wininguser:'dummyuser2'});
@@ -212,6 +230,7 @@ exports.GetItems = (req, res) => {
 
   res.json(Items); //send array of existing active items in JSON notation
   console.log ("received get Items call responded with: ", Items);
+  */
 }
 
 
@@ -221,7 +240,6 @@ GET to obtain all active users in the database
 exports.GetUsers = (req, res) => {
   console.log('GetUsers -> received get users call');
 
-  /*
   // get all active users in the database
   user.find({islogged: true})
     .then(Users => {
@@ -229,14 +247,14 @@ exports.GetUsers = (req, res) => {
       console.log('GetUsers -> users retrieved');
       // send the users to the client
       res.json(Users);
+      //res.status(200).send('OK');
     }).catch(err => {
       // there was an error in the database
       console.log('GetUsers -> database error occurred');
       // send a 5*** status using res.status
       res.status(500).send('Internal server error : database error occurred');
     });
-  */
 
-  res.status(200).send('OK'); //for now it sends just a 200 Ok like if no users are logged in
+  // res.status(200).send('OK'); //for now it sends just a 200 Ok like if no users are logged in
 }
 

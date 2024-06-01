@@ -24,13 +24,13 @@ export class SocketService {
   }
 
   // sends a new event with name EventName and data Data
-  sendEvent (EventName:any,Data:any){
-  						 // newUser:username' is the name of the event in the server. 	
+  sendEvent (EventName:any, Data:any) {
+    // newUser:username' is the name of the event in the server. 	
   		this.socket.emit(EventName, Data);
   }
 
    // configures an observable to emit a value every time we receive a event with name
-  getEvent(Eventname: any){
+  getEvent(Eventname: any) {
   	 let observable = new Observable (observer =>{
   	 	this.socket.on(Eventname, (data:any) => {
   	 		observer.next(data);

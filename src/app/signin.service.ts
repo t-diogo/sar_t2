@@ -23,8 +23,8 @@ export class SigninService {
     var currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (currentUser) this.token = currentUser;
   }
-  // Submit User name and Password obtain token object from server that has the username and the jwt token
 
+  // Submit User name and Password obtain token object from server that has the username and the jwt token
   login(username: string, password: string, latitude: number, longitude: number) {
     console.log("signin service -> login call");
     this.latitude = latitude;
@@ -41,7 +41,6 @@ export class SigninService {
     this.token.username = token.username;
     this.token.token = token.token;
     localStorage.setItem('currentUser', JSON.stringify({ username: token.username, token: token.token }));
-
   }
 
   logout(): void {

@@ -3,6 +3,7 @@ import {throwError,  Observable } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { catchError, map, tap } from 'rxjs/operators';
 import { SigninService } from './signin.service';
+import { Item } from './item';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,7 @@ export class AuctionService {
   private removeItemUrl;
 
   constructor(private http: HttpClient, private signinService: SigninService) {
-    this.removeItemUrl = "/api/removeitem";
+    this.removeItemUrl = '/api/removeitem';
   }
 
   getItems() {
@@ -39,11 +40,11 @@ export class AuctionService {
               );
    }
 
-  removeItem (item: any) {
-    console.log("auctiob service removeItem -> Removing an item.");
+  removeItem (item: Item) {
+    console.log("auction service removeItem -> Removing an item.");
+    // add authorization header with jwt token
     let headers = new HttpHeaders({ 'Authorization': 'Bearer ' + this.signinService.token.token }); // insert tokern in the requests
-    let options = { headers: headers };
-
+    const options = { headers: headers };
     return this.http.post<any>(this.removeItemUrl, item, options)
       .pipe(
         catchError(this.handleError)

@@ -54,13 +54,14 @@ export class SigninComponent implements OnInit {
           this.signinservice.login(this.loginForm.value.username, this.loginForm.value.password, this.latitude, this.longitude)
             .subscribe({
               next: result => {
+
                 // if the Http POST call made is successfull the result is a Token object
                 this.signinservice.setToken(result); // store the received jwt token in the sign in service for future use in authentication
                 this.socketservice.connect();	// connect the websocket since we already have the token
                 
                 //send a new user event to the server
-                this.socketservice.sendEvent('userLogIn:username',{username: this.loginForm.value.username});
                 this.errorMessage = "";
+                
                 //login successful navigate to acution page
                 console.log('navigating to auction');
                 this.router.navigate(['/auction']);
@@ -70,25 +71,24 @@ export class SigninComponent implements OnInit {
                 console.log('errorMessage: ', this.errorMessage);
                 this.loginForm.controls['username'].setErrors({invalid: true});
               }
+
             });
         },
         (err) => {
           this.signinservice.login(this.loginForm.value.username, this.loginForm.value.password, this.latitude, this.longitude)
             .subscribe({
               next: result => {
+
                 // if the Http POST call made is successfull the result is a Token object
-          
                 this.signinservice.setToken(result); // store the received jwt token in the sign in service for future use in authentication
                 this.socketservice.connect();	// connect the websocket since we already have the token
 
-                //send a user login event to the server
-                this.socketservice.sendEvent('userLogIn:username',{username: this.loginForm.value.username});
-                
                 this.errorMessage = "";
 
                 // navigate to auction page
                 console.log('navigating to auction');
                 this.router.navigate(['/auction']);
+
               },
               error: error => {
                 this.errorMessage = <any>error;
